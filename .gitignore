@@ -1,0 +1,51 @@
+# Build results
+bin/
+obj/
+out/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# OS specific
+[Dd]esktop.ini
+[Tt]humbs.db
+*.DS_Store
+
+# Dotnet specific
+*.dll
+*.exe
+*.app
+*.pdb
+*.cache
+*.log
+*.vspscc
+*.vssscc
+*.dbmdl
+
+# Coverage / test
+*.coverage
+*.coveragexml
+TestResult*/
+*.nunit.xml
+
+# Others
+*.swp
+*.bak
+*.tmp
+*.old
+
+# If using secrets locally (don’t commit)
+appsettings.*.local.json
+appsettings.Development.json
+

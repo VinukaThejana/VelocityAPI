@@ -1,0 +1,9 @@
+@VelocityAPI_HostAddress = http://localhost:8080
+
+@name = The name of the user
+GET {{@VelocityAPI_HostAddress}}/api/hello/world?name={{name}}
+Accept: application/json
+
+GET {{@VelocityAPI_HostAddress}}/api/health
+Accept: application/json
+

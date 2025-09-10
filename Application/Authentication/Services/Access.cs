@@ -1,0 +1,104 @@
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
+using VelocityAPI.Application.Authentication.Common;
+using VelocityAPI.Application.Authentication.Interfaces;
+using VelocityAPI.Application.Authentication.Errors;
+using VelocityAPI.Models;
+
+namespace VelocityAPI.Application.Authentication.Services;
+
+public class Access : ITokenService
+{
+    private readonly IConnectionMultiplexer _redis;
+    private readonly AppSettings _settings;
+
+    public Access(IConnectionMultiplexer redis, IOptions<AppSettings> options)
+    {
+        _redis = redis;
+        _settings = options.Value;
+    }
+
+    public async Task<TokenResponse> Create(TokenParams tokenParams)
+    {
+        var rjti = tokenParams.getRjti();
+        var isAccessTokenAlreadyGenerated = !string.IsNullOrEmpty(tokenParams.Ajti);
+        var ajti = isAccessTokenAlreadyGenerated ? tokenParams.getAjti() : Ulid.NewUlid().ToString();
+
+        var claims = new TokenClaims
+        {
+            Jti = ajti,
+            UserId = tokenParams.UserId,
+        };
+
+        var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.AccessTokenExpirationMinutes);
+
+        if (!isAccessTokenAlreadyGenerated)
+        {
+            var db = _redis.GetDatabase();
+            try
+            {
+                await db.StringSetAsync(
+                  TokenKeys.getAccessTokenKey(ajti),
+                  tokenParams.UserId,
+                  TimeSpan.FromMinutes(_settings.AccessTokenExpirationMinutes)
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new TokenInternalException("An error occurred while creating the access token.", ex);
+            }
+        }
+
+        return response;
+    }
+
+    public async Task<TokenClaims> Verify(string token)
+    {
+        var principal = JwtTokenGenerator.GetPrincipalFromToken(token, _settings.JWTSecret);
+        if (principal == null)
+        {
+            throw new TokenValidationException("Invalid token.");
+        }
+
+        var claims = principal.Claims;
+
+        var jti = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+        var userId = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        var refreshTokenJti = claims.FirstOrDefault(c => c.Type == "rjti")?.Value;
+
+        var missing = new List<string>();
+        if (string.IsNullOrEmpty(jti)) missing.Add("jti");
+        if (string.IsNullOrEmpty(userId)) missing.Add("sub");
+        if (string.IsNullOrEmpty(refreshTokenJti)) missing.Add("rjti");
+
+        if (missing.Count > 0)
+        {
+            throw new TokenValidationException($"Token is missing the following claims: {string.Join(", ", missing)}");
+        }
+
+        var db = _redis.GetDatabase();
+
+        try
+        {
+            var userIdFromRedis = await db.StringGetAsync(
+              TokenKeys.getAccessTokenKey(jti!)
+            );
+
+            if (string.IsNullOrEmpty(userIdFromRedis) || userIdFromRedis != userId)
+            {
+                throw new TokenValidationException("Access token is invalid or has expired.");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new TokenInternalException("An error occurred while verifying the access token.", ex);
+        }
+
+        return new TokenClaims
+        {
+            Jti = jti!,
+            UserId = userId!,
+            Rjti = refreshTokenJti!
+        };
+    }
+}

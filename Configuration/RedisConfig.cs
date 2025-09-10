@@ -15,7 +15,7 @@ public static class RedisConfig
 
         services.AddStackExchangeRedisCache(options =>
         {
-            options.InstanceName = "VelocityAPI_";
+            options.InstanceName = "velocityapi:";
         });
 
         return services;

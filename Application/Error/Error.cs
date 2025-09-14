@@ -26,6 +26,18 @@ public class Error
         return new BadRequestObjectResult(error);
     }
 
+    public static IActionResult Unauthorized(string message = "Unauthorized", object? details = null)
+    {
+        var error = new Error(message, details);
+        return new UnauthorizedObjectResult(error);
+    }
+
+    public static IActionResult Conflict(string message = "Conflict", object? details = null)
+    {
+        var error = new Error(message, details);
+        return new ConflictObjectResult(error);
+    }
+
     public static IActionResult InternalServerError(string message = "Something went wrong", object? details = null)
     {
         var error = new Error(message, details);
@@ -33,5 +45,11 @@ public class Error
         {
             StatusCode = (int)HttpStatusCode.InternalServerError
         };
+    }
+
+    public static IActionResult Okay(string message = "Okay", object? details = null)
+    {
+        var error = new Error(message, details);
+        return new OkObjectResult(error);
     }
 }

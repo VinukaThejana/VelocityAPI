@@ -1,0 +1,64 @@
+using VelocityAPI.Models;
+using VelocityAPI.DTOs.Auth;
+using Dapper;
+using Npgsql;
+
+namespace VelocityAPI.Application.Database;
+
+public class UserModel
+{
+    public static async Task<User?> GetUserByEmail(
+      NpgsqlDataSource dataSource,
+      string email
+    )
+    {
+        const string sql = @"
+        SELECT
+          id AS Id,
+          email AS Email,
+          name AS Name,
+          photo_url AS PhotoUrl,
+          nic AS Nic,
+          strikes AS Strikes,
+          email_verified AS EmailVerified
+        FROM _user
+        WHERE email = @email
+      ";
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        return await connection.QuerySingleOrDefaultAsync<User>(sql, new { email = email });
+    }
+
+    public static async Task<User> CreateUser(
+      NpgsqlDataSource dataSource,
+      RegisterRequest userData
+    )
+    {
+        const string sql = @"
+          INSERT INTO _user (email, name, photo_url, password, nic)
+          VALUES (@Email, @Name, @PhotoUrl, @Password, @Nic)
+          RETURNING
+            id AS Id,
+            email AS Email,
+            name AS Name,
+            photo_url AS PhotoUrl,
+            nic AS Nic,
+            strikes AS Strikes,
+            email_verified AS EmailVerified;
+        ";
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        var newUser = await connection.QuerySingleAsync<User>(sql, new
+        {
+            Email = userData.Email,
+            Name = userData.Name,
+            PhotoUrl = userData.getPhotoUrl(),
+            Password = userData.getHashedPassword(),
+            Nic = userData.Nic
+        });
+
+        return newUser;
+    }
+}

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using VelocityAPI.Models;
 using VelocityAPI.Configuration;
+using VelocityAPI.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddControllers();
 
 
 var app = builder.Build();
+app.UseGlobalExceptionHandler();
 
 var settings = app.Services.GetRequiredService<IOptions<AppSettings>>().Value;
 app.Urls.Add($"http://*:{settings.Port}");

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using BCrypt.Net;
 
 namespace VelocityAPI.DTOs.Auth;
 

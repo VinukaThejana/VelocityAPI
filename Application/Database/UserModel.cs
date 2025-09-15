@@ -21,7 +21,7 @@ public class UserModel
           nic AS Nic,
           strikes AS Strikes,
           email_verified AS EmailVerified
-        FROM _user
+        FROM velocity._user
         WHERE email = @email
       ";
 
@@ -36,7 +36,7 @@ public class UserModel
     )
     {
         const string sql = @"
-          INSERT INTO _user (email, name, photo_url, password, nic)
+          INSERT INTO velocity._user (email, name, photo_url, password, nic)
           VALUES (@Email, @Name, @PhotoUrl, @Password, @Nic)
           RETURNING
             id AS Id,

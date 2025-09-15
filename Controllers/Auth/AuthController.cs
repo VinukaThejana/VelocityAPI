@@ -3,7 +3,6 @@ using Npgsql;
 using VelocityAPI.DTOs.Auth;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
-using System.Threading.Tasks;
 
 namespace VelocityAPI.Controllers.Hello;
 

@@ -14,6 +14,9 @@ namespace VelocityAPI.Models
         public string JWTSecret { get; set; } = string.Empty;
 
         [Required]
+        public string ResendAPIKey { get; set; } = string.Empty;
+
+        [Required]
         [Range(1, int.MaxValue)]
         public int AccessTokenExpirationMinutes { get; set; } = 60;
 

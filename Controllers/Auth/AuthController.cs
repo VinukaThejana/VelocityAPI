@@ -52,7 +52,8 @@ public class AuthController : ControllerBase
         return Error.Okay("Verification email sent");
     }
 
-    private string GetUserEmailVerificationRedisKey(string userId) => $"email_verification:{userId}";
+
+    private string GetUserEmailVerificationRedisKey(string token) => $"email_verification:{token}";
 
     private async Task SendUserEmailVerificationEmail(
         User user,
@@ -64,8 +65,8 @@ public class AuthController : ControllerBase
         var verificationToken = Ulid.NewUlid().ToString();
 
         var redisDb = _redis.GetDatabase();
-        var redisKey = this.GetUserEmailVerificationRedisKey(user.Id);
-        await redisDb.StringSetAsync(redisKey, verificationToken, TimeSpan.FromHours(1));
+        var redisKey = this.GetUserEmailVerificationRedisKey(verificationToken);
+        await redisDb.StringSetAsync(redisKey, user.Id, TimeSpan.FromHours(1));
 
         var verificationLink = $"{request.Scheme}://{request.Host}/api/auth/verify/email?token={verificationToken}";
 

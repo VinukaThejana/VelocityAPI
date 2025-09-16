@@ -3,6 +3,10 @@ using Npgsql;
 using VelocityAPI.DTOs.Auth;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
+using VelocityAPI.Models;
+using StackExchange.Redis;
+using Microsoft.Extensions.Options;
+using Resend;
 
 namespace VelocityAPI.Controllers.Hello;
 
@@ -11,14 +15,19 @@ namespace VelocityAPI.Controllers.Hello;
 public class AuthController : ControllerBase
 {
     private readonly NpgsqlDataSource _dataSource;
+    private readonly IConnectionMultiplexer _redis;
 
-    public AuthController(NpgsqlDataSource dataSource)
+    public AuthController(NpgsqlDataSource dataSource, IConnectionMultiplexer redis)
     {
         _dataSource = dataSource;
+        _redis = redis;
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Regsiter([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Regsiter(
+      [FromBody] RegisterRequest request,
+      [FromServices] IOptions<AppSettings> settings
+    )
     {
         var user = await UserModel.GetUserByEmail(_dataSource, request.Email);
         if (user != null)
@@ -33,14 +42,50 @@ public class AuthController : ControllerBase
                 return Error.Unauthorized("You have been locked out of the system. This is due to you not buying vehicles after biding on them. Please contact support to unlock your account.");
             }
 
-            // NOTE: Resend verification email logic here
-            return Error.Okay("Verification email resent");
+            await this.SendUserEmailVerificationEmail(user, settings.Value.ResendAPIKey);
+            return Error.Okay("Verification email sent");
         }
 
         var newUser = await UserModel.CreateUser(_dataSource, request);
 
-        // NOTE: Send verification email logic here
+        await this.SendUserEmailVerificationEmail(newUser, settings.Value.ResendAPIKey);
         return Error.Okay("Verification email sent");
+    }
+
+    private string GetUserEmailVerificationRedisKey(string userId) => $"email_verification:{userId}";
+
+    private async Task SendUserEmailVerificationEmail(
+        User user,
+        string ResendAPIKey
+    )
+    {
+        var request = HttpContext.Request;
+
+        var verificationToken = Ulid.NewUlid().ToString();
+
+        var redisDb = _redis.GetDatabase();
+        var redisKey = this.GetUserEmailVerificationRedisKey(user.Id);
+        await redisDb.StringSetAsync(redisKey, verificationToken, TimeSpan.FromHours(1));
+
+        var verificationLink = $"{request.Scheme}://{request.Host}/api/auth/verify/email?token={verificationToken}";
+
+        var templatePath = Path.Combine("Templates", "Email", "User", "Verify.html");
+        var emailBody = await System.IO.File.ReadAllTextAsync(templatePath);
+
+        emailBody = emailBody.Replace("{{user_name}}", user.Name);
+        emailBody = emailBody.Replace("{{verification_link}}", verificationLink);
+
+        var resend = ResendClient.Create(ResendAPIKey);
+
+        var resp = await resend.EmailSendAsync(new EmailMessage()
+        {
+            From = "Velocity API<onboarding@vinuka.dev>",
+            To = user.Email,
+            Subject = "Verify your email address",
+            HtmlBody = emailBody
+        });
+
+        Console.WriteLine($"Email Id={resp.Content}");
     }
 }
 

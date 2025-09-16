@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Verify Your VelocityAPI Account</title>
+  <style type="text/css">
+    /* Client-specific resets */
+    body,
+    table,
+    td,
+    a {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table,
+    td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      -ms-interpolation-mode: bicubic;
+    }
+
+    /* General resets */
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+
+    body {
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background-color: #121212;
+    }
+
+    /* iOS blue link override */
+    a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+      font-size: inherit !important;
+      font-family: inherit !important;
+      font-weight: inherit !important;
+      line-height: inherit !important;
+    }
+
+    /* Responsive styles */
+    @media screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #121212;">
+  <div
+    style="display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+    Welcome to VelocityAPI! Just one more step to get you on the auction floor.
+  </div>
+
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%"
+    style="background-color: #121212;">
+    <tr>
+      <td valign="top" align="center">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="600"
+          class="email-container" style="max-width: 600px; margin: 0 auto;">
+          <tr>
+            <td style="padding: 20px 0; text-align: center;">
+              <h1
+                style="margin: 0; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; color: #ffffff;">
+                VelocityAPI</h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <img
+                src="https://tmna.aemassets.toyota.com/is/image/toyota/toyota/vehicles/2025/grcorolla/mlp/mosaic/GRC_MY25_0008_V001.png?fmt=jpeg&fit=crop&qlt=90&dpr=on,3&wid=1600&hei=780"
+                width="600" alt="Sleek Sports Car" border="0"
+                style="width: 100%; max-width: 600px; height: auto; display: block; margin: auto; background: #222222; font-family: sans-serif; font-size: 15px; line-height: 15px; color: #555555;">
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color: #1e1e1e; padding: 40px 30px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td
+                    style="font-family: Arial, sans-serif; font-size: 24px; line-height: 30px; color: #ffffff; font-weight: bold; text-align: center; padding-bottom: 20px;">
+                    One Last Step to Start Your Engine
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    style="font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #dddddd; text-align: center; padding-bottom: 30px;">
+                    Hello {{user_name}},<br><br>
+                    Thank you for registering with VelocityAPI, the premier destination for vehicle auctions. Please
+                    verify your email address by clicking the button below to activate your account and gain full access
+                    to our auction listings.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td class="button-td" align="center" style="border-radius: 5px; background: #d4af37;">
+                          <a href="{{verification_link}}" target="_blank" class="button-a"
+                            style="background: #d4af37; border: 1px solid #d4af37; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; line-height: 20px; text-decoration: none; text-transform: uppercase; padding: 15px 35px; color: #000000; display: block; border-radius: 5px;">Verify
+                            My Account</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    style="font-family: Arial, sans-serif; font-size: 14px; line-height: 20px; color: #999999; text-align: center; padding-top: 30px;">
+                    If the button above does not work, please copy and paste this link into your browser:<br>
+                    <a href="{{verification_link}}" target="_blank"
+                      style="color: #bbbbbb; text-decoration: underline; word-break: break-all;">{{verification_link}}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td
+              style="padding: 30px; text-align: center; font-family: Arial, sans-serif; font-size: 12px; line-height: 18px; color: #888888;">
+              <p style="margin: 10px 0 0 0;">You received this email because you signed up for an account on our
+                website. If you did not sign up, you can safely ignore this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>

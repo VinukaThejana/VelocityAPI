@@ -33,6 +33,7 @@ public class Refresh : ITokenService
             };
 
             var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.RefreshTokenExpirationDays * 24 * 60);
+            response.CustomClaim = ajti;
 
             var db = _redis.GetDatabase();
             var batch = db.CreateBatch();

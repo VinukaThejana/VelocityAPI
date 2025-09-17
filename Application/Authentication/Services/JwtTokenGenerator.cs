@@ -29,6 +29,7 @@ public class JwtTokenGenerator
 
         return new TokenResponse
         {
+            Jti = claims.Jti,
             Token = tokenString,
             ExpiresAt = expires
         };

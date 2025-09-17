@@ -2,9 +2,9 @@ namespace VelocityAPI.Application.Authentication.Common;
 
 public class TokenParams
 {
-    public required string Jti { get; init; }
     public required string UserId { get; init; }
 
+    public string Jti { get; init; } = string.Empty;
     public string Ajti { get; init; } = string.Empty;
     public string Rjti { get; init; } = string.Empty;
 

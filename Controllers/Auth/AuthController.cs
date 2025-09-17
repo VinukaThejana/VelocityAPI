@@ -7,6 +7,7 @@ using VelocityAPI.Models;
 using StackExchange.Redis;
 using Microsoft.Extensions.Options;
 using Resend;
+using System.Net;
 
 namespace VelocityAPI.Controllers.Hello;
 
@@ -52,6 +53,52 @@ public class AuthController : ControllerBase
         return Error.Okay("Verification email sent");
     }
 
+    [HttpGet("verify/email")]
+    public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return this.RedirectToPage("Please signup to send a verification email", 400);
+            }
+
+            var redisDb = _redis.GetDatabase();
+            var redisKey = this.GetUserEmailVerificationRedisKey(token);
+
+            var userId = (string?)await redisDb.StringGetAsync(redisKey);
+            if (string.IsNullOrEmpty(userId) || userId == RedisValue.Null)
+            {
+                return this.RedirectToPage("Invalid or expired token, Please signup again", 400);
+            }
+
+            _ = redisDb.KeyDeleteAsync(redisKey);
+
+            var user = await UserModel.GetUserById(_dataSource, userId);
+            if (user == null)
+            {
+                return this.RedirectToPage("User not found, Please signup again", 404);
+            }
+            if (user.EmailVerified)
+            {
+                return this.RedirectToPage("Email already verified, Please login", 200);
+            }
+            if (user.Strikes == 3)
+            {
+                return this.RedirectToPage("You have been locked out of the system. This is due to you not buying vehicles after biding on them. Please contact support to unlock your account.", 401);
+            }
+
+            await UserModel.MarkEmailAsVerified(_dataSource, user.Id);
+
+            return this.RedirectToPage("", 200);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            return this.RedirectToPage("Something went wrong. Please try again later", 500);
+        }
+    }
 
     private string GetUserEmailVerificationRedisKey(string token) => $"email_verification:{token}";
 
@@ -87,6 +134,22 @@ public class AuthController : ControllerBase
         });
 
         Console.WriteLine($"Email Id={resp.Content}");
+    }
+
+    private IActionResult RedirectToPage(string errorMessage, int statusCode)
+    {
+        // NOTE: CHANGE THIS TO YOUR PRODUCTION FRONTEND URL
+        const string baseUrl = "http://localhost:3000";
+
+        if (statusCode == 200 && errorMessage == "")
+        {
+            return Redirect($"{baseUrl}/login");
+        }
+
+        var encodedMessage = WebUtility.UrlEncode(errorMessage);
+        var redirectUrl = $"{baseUrl}/sign-up?status={statusCode}&error={encodedMessage}";
+
+        return Redirect(redirectUrl);
     }
 }
 

@@ -30,6 +30,29 @@ public class UserModel
         return await connection.QuerySingleOrDefaultAsync<User>(sql, new { email = email });
     }
 
+    public static async Task<User?> GetUserById(
+      NpgsqlDataSource dataSource,
+      string id
+    )
+    {
+        const string sql = @"
+        SELECT
+          id AS Id,
+          email AS Email,
+          name AS Name,
+          photo_url AS PhotoUrl,
+          nic AS Nic,
+          strikes AS Strikes,
+          email_verified AS EmailVerified
+        FROM velocity._user
+        WHERE id = @id
+      ";
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        return await connection.QuerySingleOrDefaultAsync<User>(sql, new { id = id });
+    }
+
     public static async Task<User> CreateUser(
       NpgsqlDataSource dataSource,
       RegisterRequest userData
@@ -60,5 +83,20 @@ public class UserModel
         });
 
         return newUser;
+    }
+
+    public static async Task MarkEmailAsVerified(
+      NpgsqlDataSource dataSource,
+      string userId
+    )
+    {
+        const string sql = @"
+          UPDATE velocity._user
+          SET email_verified = TRUE
+          WHERE id = @userId
+        ";
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+        await connection.ExecuteAsync(sql, new { userId = userId });
     }
 }

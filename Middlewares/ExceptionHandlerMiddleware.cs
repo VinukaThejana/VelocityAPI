@@ -36,6 +36,8 @@ public class ExceptionHandlerMiddleware
         var statusCode = 500;
         var message = "";
 
+        Console.WriteLine("The exception occurs here");
+
         switch (exception)
         {
             case TokenValidationException:

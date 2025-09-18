@@ -33,6 +33,10 @@ public class Refresh : ITokenService
             };
 
             var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.RefreshTokenExpirationDays * 24 * 60);
+            if (response == null)
+            {
+                throw new TokenInternalException("An error occurred while creating the refresh token.");
+            }
             response.CustomClaim = ajti;
 
             var db = _redis.GetDatabase();
@@ -71,8 +75,8 @@ public class Refresh : ITokenService
 
         var claims = principal.Claims;
 
-        var jti = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
-        var userId = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
+        var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
         var custom = claims.FirstOrDefault(c => c.Type == "custom")?.Value;
 
         var missing = new List<string>();
@@ -87,20 +91,13 @@ public class Refresh : ITokenService
 
         var db = _redis.GetDatabase();
 
-        try
-        {
-            var accessTokenJti = await db.StringGetAsync(
-              TokenKeys.getRefreshTokenKey(jti!)
-            );
+        var accessTokenJti = await db.StringGetAsync(
+          TokenKeys.getRefreshTokenKey(jti!)
+        );
 
-            if (accessTokenJti.IsNullOrEmpty || accessTokenJti != custom)
-            {
-                throw new TokenValidationException("Refresh token is invalid or has been revoked.");
-            }
-        }
-        catch (Exception ex)
+        if (accessTokenJti.IsNullOrEmpty || accessTokenJti != custom)
         {
-            throw new TokenInternalException("An error occurred while verifying the refresh token.", ex);
+            throw new TokenValidationException("Refresh token is invalid or has been revoked.");
         }
 
         return new TokenClaims

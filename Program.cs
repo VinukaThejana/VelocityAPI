@@ -22,12 +22,14 @@ builder.Services.AddControllers();
 
 
 var app = builder.Build();
+
 app.UseGlobalExceptionHandler();
+app.UseHttpsRedirection();
+
+app.MapControllers();
+app.MapHealthChecks("/api/health");
 
 var settings = app.Services.GetRequiredService<IOptions<AppSettings>>().Value;
 app.Urls.Add($"http://*:{settings.Port}");
 
-app.UseHttpsRedirection();
-app.MapControllers();
-app.MapHealthChecks("/api/health");
 app.Run();

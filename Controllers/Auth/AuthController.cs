@@ -4,6 +4,10 @@ using VelocityAPI.DTOs.Auth;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
 using VelocityAPI.Models;
+using VelocityAPI.Application.Authentication.Services;
+using VelocityAPI.Application.Authentication.Errors;
+using VelocityAPI.Application.Authentication.Common;
+using VelocityAPI.Application.Constants;
 using StackExchange.Redis;
 using Microsoft.Extensions.Options;
 using Resend;
@@ -100,6 +104,164 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(
+      [FromBody] LoginRequest request,
+      [FromServices] IOptions<AppSettings> settings
+    )
+    {
+        var user = await UserModel.GetUserByEmail(_dataSource, request.Email);
+        if (user == null)
+        {
+            return Error.Unauthorized("Email or password is incorrect");
+        }
+
+        var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+        if (!isPasswordValid)
+        {
+            return Error.Unauthorized("Email or password is incorrect");
+        }
+
+        if (!user.EmailVerified)
+        {
+            return Error.Unauthorized("Please verify your email to login");
+        }
+        if (user.Strikes == 3)
+        {
+            return Error.Unauthorized(
+  "You have been locked out of the system. This is due to you not buying vehicles after biding on them. Please contact support to unlock your account."
+            );
+        }
+
+        var refresh = new Refresh(_redis, settings);
+        var refreshResponse = await refresh.Create(new TokenParams
+        {
+            Jti = Ulid.NewUlid().ToString(),
+            UserId = user.Id
+        });
+
+        var access = new Access(_redis, settings);
+        var accessResponse = await access.Create(new TokenParams
+        {
+            Ajti = refreshResponse.CustomClaim,
+            Rjti = refreshResponse.Jti,
+            UserId = user.Id,
+        });
+
+        var session = new Session(settings);
+        var sessionResponse = await session.Create(new TokenParams
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            Name = user.Name,
+            PhotoUrl = user.PhotoUrl,
+        });
+
+        return this.SendTokens(
+          refreshResponse,
+          accessResponse,
+          sessionResponse,
+          "Login successful",
+          settings
+        );
+    }
+
+    [HttpPatch("refresh")]
+    public async Task<IActionResult> Refresh(
+      [FromServices] IOptions<AppSettings> settings
+    )
+    {
+        var refreshToken = HttpContext.Request.Cookies["refresh_token"];
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return Error.Unauthorized("Missing refresh token");
+        }
+
+        try
+        {
+            var refresh = new Refresh(_redis, settings);
+            var claims = await refresh.Verify(refreshToken);
+            if (claims == null)
+            {
+                return Error.Unauthorized("Invalid or expired refresh token");
+            }
+
+            var _ = refresh.Revoke(claims.Jti);
+
+            var refreshResponse = await refresh.Create(new TokenParams
+            {
+                UserId = claims.UserId
+            });
+
+            var access = new Access(_redis, settings);
+            var accessResponse = await access.Create(new TokenParams
+            {
+                Ajti = refreshResponse.CustomClaim,
+                Rjti = refreshResponse.Jti,
+                UserId = claims.UserId
+            });
+
+            var session = new Session(settings);
+
+            User user = new User();
+            var sessionToken = HttpContext.Request.Cookies["session_token"];
+            if (!string.IsNullOrEmpty(sessionToken))
+            {
+                try
+                {
+                    var userDetails = await session.Verify(sessionToken);
+                    if (
+                        userDetails != null &&
+                        userDetails.UserId != null &&
+                        userDetails.Email != null &&
+                        userDetails.Name != null &&
+                        userDetails.PhotoUrl != null
+                    )
+                    {
+                        user.Id = userDetails.UserId;
+                        user.Email = userDetails.Email;
+                        user.Name = userDetails.Name;
+                        user.PhotoUrl = userDetails.PhotoUrl;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+            if (string.IsNullOrEmpty(user.Id))
+            {
+                var userDetails = await UserModel.GetUserById(_dataSource, claims.UserId);
+                if (userDetails == null)
+                {
+                    return Error.Unauthorized("User not found");
+                }
+                user = userDetails;
+            }
+
+            var sessionResponse = await session.Create(new TokenParams
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Name = user.Name,
+                PhotoUrl = user.PhotoUrl,
+            });
+
+            return this.SendTokens(
+              refreshResponse,
+              accessResponse,
+              sessionResponse,
+              "Token refreshed successfully",
+              settings
+            );
+        }
+        catch (TokenValidationException ex)
+        {
+            Console.WriteLine(ex);
+            return Error.Unauthorized("Invalid or expired refresh token");
+        }
+    }
+
     private string GetUserEmailVerificationRedisKey(string token) => $"email_verification:{token}";
 
     private async Task SendUserEmailVerificationEmail(
@@ -150,6 +312,38 @@ public class AuthController : ControllerBase
         var redirectUrl = $"{baseUrl}/sign-up?status={statusCode}&error={encodedMessage}";
 
         return Redirect(redirectUrl);
+    }
+
+    private IActionResult SendTokens(
+      TokenResponse refresh,
+      TokenResponse access,
+      TokenResponse session,
+      string message,
+      IOptions<AppSettings> settings
+    )
+    {
+        var response = HttpContext.Response;
+        response.Cookies.Append("refresh_token", refresh.Token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !Env.IsDevelopment(settings.Value.Environment),
+            Domain = settings.Value.Domain,
+            Path = "/",
+            Expires = refresh.ExpiresAt,
+            MaxAge = TimeSpan.FromDays(settings.Value.RefreshTokenExpirationDays),
+        });
+        response.Cookies.Append("session_token", session.Token, new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = !Env.IsDevelopment(settings.Value.Environment),
+            Domain = settings.Value.Domain,
+            Path = "/",
+            Expires = session.ExpiresAt,
+            MaxAge = TimeSpan.FromDays(settings.Value.SessionTokenExpirationDays),
+        });
+        response.Headers.Append("X-Access-Token", access.Token);
+
+        return Error.Okay(message);
     }
 }
 

@@ -48,6 +48,8 @@ public class JwtTokenGenerator
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();
+        tokenHandler.InboundClaimTypeMap.Clear();
+
         try
         {
             var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);

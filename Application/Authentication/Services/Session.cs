@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
 using VelocityAPI.Application.Authentication.Common;
 using VelocityAPI.Application.Authentication.Interfaces;
 using VelocityAPI.Application.Authentication.Errors;
@@ -28,6 +27,10 @@ public class Session : ITokenService
         };
 
         var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.SessionTokenExpirationDays * 24 * 60);
+        if (response == null)
+        {
+            throw new TokenInternalException("An error occurred while generating the session token");
+        }
         return Task.FromResult(response);
     }
 
@@ -41,11 +44,11 @@ public class Session : ITokenService
 
         var claims = principal.Claims;
 
-        var jti = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
-        var userId = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-        var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-        var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-        var photoUrl = claims.FirstOrDefault(c => c.Type == "photoUrl")?.Value;
+        var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
+        var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+        var name = claims.FirstOrDefault(c => c.Type == "unique_name")?.Value;
+        var email = claims.FirstOrDefault(c => c.Type == "email")?.Value;
+        var photoUrl = claims.FirstOrDefault(c => c.Type == "photo_url")?.Value;
 
         var missing = new List<string>();
         if (string.IsNullOrEmpty(jti)) missing.Add("jti");

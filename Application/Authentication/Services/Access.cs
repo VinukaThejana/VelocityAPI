@@ -31,6 +31,10 @@ public class Access : ITokenService
         };
 
         var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.AccessTokenExpirationMinutes);
+        if (response == null)
+        {
+            throw new TokenInternalException("An error occurred while creating the access token.");
+        }
 
         if (!isAccessTokenAlreadyGenerated)
         {
@@ -62,8 +66,8 @@ public class Access : ITokenService
 
         var claims = principal.Claims;
 
-        var jti = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
-        var userId = claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
+        var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
         var refreshTokenJti = claims.FirstOrDefault(c => c.Type == "rjti")?.Value;
 
         var missing = new List<string>();
@@ -78,20 +82,13 @@ public class Access : ITokenService
 
         var db = _redis.GetDatabase();
 
-        try
-        {
-            var userIdFromRedis = await db.StringGetAsync(
-              TokenKeys.getAccessTokenKey(jti!)
-            );
+        var userIdFromRedis = await db.StringGetAsync(
+          TokenKeys.getAccessTokenKey(jti!)
+        );
 
-            if (string.IsNullOrEmpty(userIdFromRedis) || userIdFromRedis != userId)
-            {
-                throw new TokenValidationException("Access token is invalid or has expired.");
-            }
-        }
-        catch (Exception ex)
+        if (string.IsNullOrEmpty(userIdFromRedis) || userIdFromRedis != userId)
         {
-            throw new TokenInternalException("An error occurred while verifying the access token.", ex);
+            throw new TokenValidationException("Access token is invalid or has expired.");
         }
 
         return new TokenClaims

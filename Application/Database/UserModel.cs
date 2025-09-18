@@ -19,6 +19,7 @@ public class UserModel
           name AS Name,
           photo_url AS PhotoUrl,
           nic AS Nic,
+          password AS PasswordHash,
           strikes AS Strikes,
           email_verified AS EmailVerified
         FROM velocity._user
@@ -42,6 +43,7 @@ public class UserModel
           name AS Name,
           photo_url AS PhotoUrl,
           nic AS Nic,
+          password AS PasswordHash,
           strikes AS Strikes,
           email_verified AS EmailVerified
         FROM velocity._user

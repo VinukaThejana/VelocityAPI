@@ -17,6 +17,12 @@ namespace VelocityAPI.Models
         public string ResendAPIKey { get; set; } = string.Empty;
 
         [Required]
+        public string Environment { get; set; } = string.Empty;
+
+        [Required]
+        public string Domain { get; set; } = string.Empty;
+
+        [Required]
         [Range(1, int.MaxValue)]
         public int AccessTokenExpirationMinutes { get; set; } = 60;
 

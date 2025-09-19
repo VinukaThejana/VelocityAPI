@@ -186,7 +186,7 @@ public class AuthController : ControllerBase
                 return Error.Unauthorized("Invalid or expired refresh token");
             }
 
-            var _ = refresh.Revoke(claims.Jti);
+            await refresh.Revoke(claims.Jti);
 
             var refreshResponse = await refresh.Create(new TokenParams
             {
@@ -260,6 +260,30 @@ public class AuthController : ControllerBase
             Console.WriteLine(ex);
             return Error.Unauthorized("Invalid or expired refresh token");
         }
+    }
+
+    [HttpDelete("logout")]
+    public async Task<IActionResult> Logout(
+      [FromServices] IOptions<AppSettings> settings
+    )
+    {
+        var refreshToken = HttpContext.Request.Cookies["refresh_token"];
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return this.DeleteCookies(settings);
+        }
+
+        try
+        {
+            var refresh = new Refresh(_redis, settings);
+            await refresh.Revoke(refreshToken);
+        }
+        catch (Exception)
+        {
+            return this.DeleteCookies(settings);
+        }
+
+        return this.DeleteCookies(settings);
     }
 
     private string GetUserEmailVerificationRedisKey(string token) => $"email_verification:{token}";
@@ -344,6 +368,33 @@ public class AuthController : ControllerBase
         response.Headers.Append("X-Access-Token", access.Token);
 
         return Error.Okay(message);
+    }
+
+    private IActionResult DeleteCookies(
+      IOptions<AppSettings> settings
+    )
+    {
+        var response = HttpContext.Response;
+        response.Cookies.Delete("refresh_token", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !Env.IsDevelopment(settings.Value.Environment),
+            Domain = settings.Value.Domain,
+            Path = "/",
+            Expires = DateTime.UtcNow.AddDays(-1),
+            MaxAge = TimeSpan.FromDays(-1),
+        });
+        response.Cookies.Delete("session_token", new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = !Env.IsDevelopment(settings.Value.Environment),
+            Domain = settings.Value.Domain,
+            Path = "/",
+            Expires = DateTime.UtcNow.AddDays(-1),
+            MaxAge = TimeSpan.FromDays(-1),
+        });
+
+        return Error.Okay("Logged out successfully");
     }
 }
 

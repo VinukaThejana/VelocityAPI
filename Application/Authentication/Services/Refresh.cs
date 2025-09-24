@@ -40,24 +40,31 @@ public class Refresh : ITokenService
             response.CustomClaim = ajti;
 
             var db = _redis.GetDatabase();
-            var batch = db.CreateBatch();
+            var transaction = db.CreateTransaction();
 
-            var setRefreshTask = batch.StringSetAsync(
+            var setRefreshTask = transaction.StringSetAsync(
               TokenKeys.getRefreshTokenKey(rjti),
               ajti,
               TimeSpan.FromDays(_settings.RefreshTokenExpirationDays)
             );
-
-            var setAccessTask = batch.StringSetAsync(
+            var setAccessTask = transaction.StringSetAsync(
               TokenKeys.getAccessTokenKey(ajti),
               tokenParams.UserId,
               TimeSpan.FromMinutes(_settings.AccessTokenExpirationMinutes)
             );
 
-            batch.Execute();
-            await Task.WhenAll(setRefreshTask, setAccessTask);
+            bool committed = await transaction.ExecuteAsync();
+            if (!committed)
+            {
+                throw new Exception("Transaction to create refresh token failed to commit.");
+            }
 
+            await Task.WhenAll(setRefreshTask, setAccessTask);
             return response;
+        }
+        catch (TokenValidationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -67,45 +74,56 @@ public class Refresh : ITokenService
 
     public async Task<TokenClaims> Verify(string token)
     {
-        var principal = JwtTokenGenerator.GetPrincipalFromToken(token, _settings.JWTSecret);
-        if (principal == null)
+        try
         {
-            throw new TokenValidationException("Invalid token.");
+            var principal = JwtTokenGenerator.GetPrincipalFromToken(token, _settings.JWTSecret);
+            if (principal == null)
+            {
+                throw new TokenValidationException("Invalid token.");
+            }
+
+            var claims = principal.Claims;
+
+            var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
+            var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            var custom = claims.FirstOrDefault(c => c.Type == "custom")?.Value;
+
+            var missing = new List<string>();
+            if (string.IsNullOrEmpty(jti)) missing.Add("jti");
+            if (string.IsNullOrEmpty(userId)) missing.Add("sub");
+            if (string.IsNullOrEmpty(custom)) missing.Add("custom");
+
+            if (missing.Count > 0)
+            {
+                throw new TokenValidationException($"Token is missing the following claims: {string.Join(", ", missing)}");
+            }
+
+            var db = _redis.GetDatabase();
+
+            var accessTokenJti = await db.StringGetAsync(
+              TokenKeys.getRefreshTokenKey(jti!)
+            );
+
+            if (accessTokenJti.IsNullOrEmpty || accessTokenJti != custom)
+            {
+                throw new TokenValidationException("Refresh token is invalid or has been revoked.");
+            }
+
+            return new TokenClaims
+            {
+                Jti = jti!,
+                UserId = userId!,
+                Custom = custom!,
+            };
         }
-
-        var claims = principal.Claims;
-
-        var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
-        var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
-        var custom = claims.FirstOrDefault(c => c.Type == "custom")?.Value;
-
-        var missing = new List<string>();
-        if (string.IsNullOrEmpty(jti)) missing.Add("jti");
-        if (string.IsNullOrEmpty(userId)) missing.Add("sub");
-        if (string.IsNullOrEmpty(custom)) missing.Add("custom");
-
-        if (missing.Count > 0)
+        catch (TokenValidationException)
         {
-            throw new TokenValidationException($"Token is missing the following claims: {string.Join(", ", missing)}");
+            throw;
         }
-
-        var db = _redis.GetDatabase();
-
-        var accessTokenJti = await db.StringGetAsync(
-          TokenKeys.getRefreshTokenKey(jti!)
-        );
-
-        if (accessTokenJti.IsNullOrEmpty || accessTokenJti != custom)
+        catch (Exception ex)
         {
-            throw new TokenValidationException("Refresh token is invalid or has been revoked.");
+            throw new TokenInternalException(ex);
         }
-
-        return new TokenClaims
-        {
-            Jti = jti!,
-            UserId = userId!,
-            Custom = custom!,
-        };
     }
 
     public async Task Revoke(string tokenOrRefreshTokenJti)
@@ -132,6 +150,7 @@ public class Refresh : ITokenService
         try
         {
             var db = _redis.GetDatabase();
+            var transaction = db.CreateTransaction();
 
             var accessTokenJti = await db.StringGetAsync(
               TokenKeys.getRefreshTokenKey(jti)
@@ -141,20 +160,24 @@ public class Refresh : ITokenService
                 throw new TokenValidationException("Refresh token is invalid or has already been revoked.");
             }
 
-            var batch = db.CreateBatch();
+            var refreshDelete = transaction.KeyDeleteAsync(TokenKeys.getRefreshTokenKey(jti));
+            var accessDelete = transaction.KeyDeleteAsync(TokenKeys.getAccessTokenKey(accessTokenJti!));
 
-            await batch.KeyDeleteAsync(
-              TokenKeys.getRefreshTokenKey(jti)
-            );
-            await batch.KeyDeleteAsync(
-              TokenKeys.getAccessTokenKey(accessTokenJti!)
-            );
+            bool committed = await transaction.ExecuteAsync();
+            if (!committed)
+            {
+                throw new Exception("Transaction to revoke refresh token failed to commit.");
+            }
 
-            batch.Execute();
+            await Task.WhenAll(refreshDelete, accessDelete);
+        }
+        catch (TokenValidationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            throw new TokenInternalException("An error occurred while revoking the refresh token.", ex);
+            throw new TokenInternalException(ex);
         }
     }
 }

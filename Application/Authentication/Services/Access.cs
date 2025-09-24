@@ -20,82 +20,92 @@ public class Access : ITokenService
 
     public async Task<TokenResponse> Create(TokenParams tokenParams)
     {
-        var rjti = tokenParams.getRjti();
-        var isAccessTokenAlreadyGenerated = !string.IsNullOrEmpty(tokenParams.Ajti);
-        var ajti = isAccessTokenAlreadyGenerated ? tokenParams.getAjti() : Ulid.NewUlid().ToString();
-
-        var claims = new TokenClaims
+        try
         {
-            Jti = ajti,
-            UserId = tokenParams.UserId,
-        };
+            var rjti = tokenParams.getRjti();
+            var isAccessTokenAlreadyGenerated = !string.IsNullOrEmpty(tokenParams.Ajti);
+            var ajti = isAccessTokenAlreadyGenerated ? tokenParams.getAjti() : Ulid.NewUlid().ToString();
 
-        var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.AccessTokenExpirationMinutes);
-        if (response == null)
-        {
-            throw new TokenInternalException("An error occurred while creating the access token.");
-        }
-
-        if (!isAccessTokenAlreadyGenerated)
-        {
-            var db = _redis.GetDatabase();
-            try
+            var claims = new TokenClaims
             {
+                Jti = ajti,
+                UserId = tokenParams.UserId,
+            };
+
+            var response = JwtTokenGenerator.Generate(claims, _settings.JWTSecret, _settings.AccessTokenExpirationMinutes);
+            if (response == null)
+            {
+                throw new Exception("An error occurred while creating the access token.");
+            }
+
+            if (!isAccessTokenAlreadyGenerated)
+            {
+                var db = _redis.GetDatabase();
                 await db.StringSetAsync(
                   TokenKeys.getAccessTokenKey(ajti),
                   tokenParams.UserId,
                   TimeSpan.FromMinutes(_settings.AccessTokenExpirationMinutes)
                 );
             }
-            catch (Exception ex)
-            {
-                throw new TokenInternalException("An error occurred while creating the access token.", ex);
-            }
+            return response;
         }
-
-        return response;
+        catch (Exception ex)
+        {
+            throw new TokenInternalException(ex);
+        }
     }
 
     public async Task<TokenClaims> Verify(string token)
     {
-        var principal = JwtTokenGenerator.GetPrincipalFromToken(token, _settings.JWTSecret);
-        if (principal == null)
+        try
         {
-            throw new TokenValidationException("Invalid token.");
+            var principal = JwtTokenGenerator.GetPrincipalFromToken(token, _settings.JWTSecret);
+            if (principal == null)
+            {
+                throw new TokenValidationException("Invalid token.");
+            }
+
+            var claims = principal.Claims;
+
+            var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
+            var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            var refreshTokenJti = claims.FirstOrDefault(c => c.Type == "rjti")?.Value;
+
+            var missing = new List<string>();
+            if (string.IsNullOrEmpty(jti)) missing.Add("jti");
+            if (string.IsNullOrEmpty(userId)) missing.Add("sub");
+            if (string.IsNullOrEmpty(refreshTokenJti)) missing.Add("rjti");
+
+            if (missing.Count > 0)
+            {
+                throw new TokenValidationException($"Token is missing the following claims: {string.Join(", ", missing)}");
+            }
+
+            var db = _redis.GetDatabase();
+
+            var userIdFromRedis = await db.StringGetAsync(
+              TokenKeys.getAccessTokenKey(jti!)
+            );
+
+            if (string.IsNullOrEmpty(userIdFromRedis) || userIdFromRedis != userId)
+            {
+                throw new TokenValidationException("Access token is invalid or has expired.");
+            }
+
+            return new TokenClaims
+            {
+                Jti = jti!,
+                UserId = userId!,
+                Rjti = refreshTokenJti!
+            };
         }
-
-        var claims = principal.Claims;
-
-        var jti = claims.FirstOrDefault(c => c.Type == "jti")?.Value;
-        var userId = claims.FirstOrDefault(c => c.Type == "sub")?.Value;
-        var refreshTokenJti = claims.FirstOrDefault(c => c.Type == "rjti")?.Value;
-
-        var missing = new List<string>();
-        if (string.IsNullOrEmpty(jti)) missing.Add("jti");
-        if (string.IsNullOrEmpty(userId)) missing.Add("sub");
-        if (string.IsNullOrEmpty(refreshTokenJti)) missing.Add("rjti");
-
-        if (missing.Count > 0)
+        catch (TokenValidationException)
         {
-            throw new TokenValidationException($"Token is missing the following claims: {string.Join(", ", missing)}");
+            throw;
         }
-
-        var db = _redis.GetDatabase();
-
-        var userIdFromRedis = await db.StringGetAsync(
-          TokenKeys.getAccessTokenKey(jti!)
-        );
-
-        if (string.IsNullOrEmpty(userIdFromRedis) || userIdFromRedis != userId)
+        catch (Exception ex)
         {
-            throw new TokenValidationException("Access token is invalid or has expired.");
+            throw new TokenInternalException(ex);
         }
-
-        return new TokenClaims
-        {
-            Jti = jti!,
-            UserId = userId!,
-            Rjti = refreshTokenJti!
-        };
     }
 }

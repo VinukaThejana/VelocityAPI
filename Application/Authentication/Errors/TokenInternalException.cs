@@ -11,4 +11,9 @@ public class TokenInternalException : Exception
     {
 
     }
+
+    public TokenInternalException(Exception innerException) : base("An internal error occurred while processing the token.", innerException)
+    {
+
+    }
 }

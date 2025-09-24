@@ -11,47 +11,55 @@ public class JwtTokenGenerator
 {
     public static TokenResponse Generate(TokenClaims claims, string secretKey, int expiresInMinutes)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(secretKey);
-        var expires = DateTime.UtcNow.AddMinutes(expiresInMinutes);
-
-        var tokenDescriptor = new SecurityTokenDescriptor
+        try
         {
-            Subject = new ClaimsIdentity(claims.ToClaimList()),
-            Expires = expires,
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-            NotBefore = DateTime.UtcNow,
-            IssuedAt = DateTime.UtcNow,
-        };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(secretKey);
+            var expires = DateTime.UtcNow.AddMinutes(expiresInMinutes);
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        var tokenString = tokenHandler.WriteToken(token);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims.ToClaimList()),
+                Expires = expires,
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                NotBefore = DateTime.UtcNow,
+                IssuedAt = DateTime.UtcNow,
+            };
 
-        return new TokenResponse
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return new TokenResponse
+            {
+                Jti = claims.Jti,
+                Token = tokenString,
+                ExpiresAt = expires
+            };
+        }
+        catch (Exception ex)
         {
-            Jti = claims.Jti,
-            Token = tokenString,
-            ExpiresAt = expires
-        };
+            throw new TokenInternalException(ex);
+        }
     }
 
     public static ClaimsPrincipal GetPrincipalFromToken(string token, string secretKey)
     {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        tokenHandler.InboundClaimTypeMap.Clear();
-
         try
         {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            tokenHandler.InboundClaimTypeMap.Clear();
+
+
             var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
             if (securityToken is not JwtSecurityToken jwtSecurityToken || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
@@ -62,7 +70,7 @@ public class JwtTokenGenerator
         }
         catch (Exception ex)
         {
-            throw new TokenValidationException("Token validation failed", ex);
+            throw new TokenValidationException("Failed to validate token", ex);
         }
     }
 

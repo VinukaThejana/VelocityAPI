@@ -172,94 +172,85 @@ public class AuthController : ControllerBase
     )
     {
         var refreshToken = HttpContext.Request.Cookies["refresh_token"];
+        var sessionToken = HttpContext.Request.Cookies["session_token"];
         if (string.IsNullOrEmpty(refreshToken))
         {
-            return Error.Unauthorized("Missing refresh token");
+            return Error.Unauthorized("Refresh token is missing");
         }
 
-        try
+        var refresh = new Refresh(_redis, settings);
+        var claims = await refresh.Verify(refreshToken);
+        if (claims == null)
         {
-            var refresh = new Refresh(_redis, settings);
-            var claims = await refresh.Verify(refreshToken);
-            if (claims == null)
-            {
-                return Error.Unauthorized("Invalid or expired refresh token");
-            }
-
-            await refresh.Revoke(claims.Jti);
-
-            var refreshResponse = await refresh.Create(new TokenParams
-            {
-                UserId = claims.UserId
-            });
-
-            var access = new Access(_redis, settings);
-            var accessResponse = await access.Create(new TokenParams
-            {
-                Ajti = refreshResponse.CustomClaim,
-                Rjti = refreshResponse.Jti,
-                UserId = claims.UserId
-            });
-
-            var session = new Session(settings);
-
-            User user = new User();
-            var sessionToken = HttpContext.Request.Cookies["session_token"];
-            if (!string.IsNullOrEmpty(sessionToken))
-            {
-                try
-                {
-                    var userDetails = await session.Verify(sessionToken);
-                    if (
-                        userDetails != null &&
-                        userDetails.UserId != null &&
-                        userDetails.Email != null &&
-                        userDetails.Name != null &&
-                        userDetails.PhotoUrl != null
-                    )
-                    {
-                        user.Id = userDetails.UserId;
-                        user.Email = userDetails.Email;
-                        user.Name = userDetails.Name;
-                        user.PhotoUrl = userDetails.PhotoUrl;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
-            }
-            if (string.IsNullOrEmpty(user.Id))
-            {
-                var userDetails = await UserModel.GetUserById(_dataSource, claims.UserId);
-                if (userDetails == null)
-                {
-                    return Error.Unauthorized("User not found");
-                }
-                user = userDetails;
-            }
-
-            var sessionResponse = await session.Create(new TokenParams
-            {
-                UserId = user.Id,
-                Email = user.Email,
-                Name = user.Name,
-                PhotoUrl = user.PhotoUrl,
-            });
-
-            return this.SendTokens(
-              refreshResponse,
-              accessResponse,
-              sessionResponse,
-              "Token refreshed successfully",
-              settings
-            );
+            throw new TokenValidationException("Invalid refresh token");
         }
-        catch (TokenValidationException ex)
+        await refresh.Revoke(claims.Jti);
+
+        var refreshResponse = await refresh.Create(new TokenParams
         {
-            Console.WriteLine(ex);
-            return Error.Unauthorized("Invalid or expired refresh token");
+            UserId = claims.UserId,
+        });
+
+        var access = new Access(_redis, settings);
+        var accessResponse = await access.Create(new TokenParams
+        {
+            Ajti = refreshResponse.CustomClaim,
+            Rjti = refreshResponse.Jti,
+            UserId = claims.UserId,
+        });
+
+        User user = new User();
+        var session = new Session(settings);
+
+        if (!string.IsNullOrEmpty(sessionToken))
+        {
+            try
+            {
+                var userDetails = await session.Verify(sessionToken);
+                if (
+                  userDetails != null &&
+                  userDetails.UserId != null &&
+                  userDetails.Email != null &&
+                  userDetails.Name != null &&
+                  userDetails.PhotoUrl != null
+                )
+                {
+                    user.Id = claims.UserId;
+                    user.Email = userDetails.Email;
+                    user.Name = userDetails.Name;
+                    user.PhotoUrl = userDetails.PhotoUrl;
+                }
+            }
+            catch (Exception)
+            {
+                // ignore
+            }
         }
+        if (string.IsNullOrEmpty(user.Id))
+        {
+            var userDetails = await UserModel.GetUserById(_dataSource, claims.UserId);
+            if (userDetails == null)
+            {
+                throw new TokenValidationException("User not found");
+            }
+            user = userDetails;
+        }
+
+        var sessionResponse = await session.Create(new TokenParams
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            Name = user.Name,
+            PhotoUrl = user.PhotoUrl,
+        });
+
+        return this.SendTokens(
+          refreshResponse,
+          accessResponse,
+          sessionResponse,
+          "Token refreshed successfully",
+          settings
+        );
     }
 
     [HttpDelete("logout")]
@@ -280,7 +271,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception)
         {
-            return this.DeleteCookies(settings);
+            // ignore
         }
 
         return this.DeleteCookies(settings);

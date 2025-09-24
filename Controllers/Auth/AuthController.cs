@@ -8,6 +8,7 @@ using VelocityAPI.Application.Authentication.Services;
 using VelocityAPI.Application.Authentication.Errors;
 using VelocityAPI.Application.Authentication.Common;
 using VelocityAPI.Application.Constants;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Microsoft.Extensions.Options;
 using Resend;
@@ -21,11 +22,17 @@ public class AuthController : ControllerBase
 {
     private readonly NpgsqlDataSource _dataSource;
     private readonly IConnectionMultiplexer _redis;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(NpgsqlDataSource dataSource, IConnectionMultiplexer redis)
+    public AuthController(
+        NpgsqlDataSource dataSource,
+        IConnectionMultiplexer redis,
+        ILogger<AuthController> logger
+    )
     {
         _dataSource = dataSource;
         _redis = redis;
+        _logger = logger;
     }
 
     [HttpPost("register")]
@@ -99,7 +106,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            _logger.LogError(ex, "Error verifying email");
             return this.RedirectToPage("Something went wrong. Please try again later", 500);
         }
     }
@@ -310,7 +317,7 @@ public class AuthController : ControllerBase
             HtmlBody = emailBody
         });
 
-        Console.WriteLine($"Email Id={resp.Content}");
+        _logger.LogInformation("Sent verification email to {Email}", user.Email);
     }
 
     private IActionResult RedirectToPage(string errorMessage, int statusCode)

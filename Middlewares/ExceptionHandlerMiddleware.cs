@@ -36,33 +36,37 @@ public class ExceptionHandlerMiddleware
         var statusCode = 500;
         var message = "";
 
-        Console.WriteLine("The exception occurs here");
-
         switch (exception)
         {
-            case TokenValidationException:
+            case TokenValidationException tve:
+                _logger.LogError(tve, "Token validation failed.");
                 statusCode = (int)HttpStatusCode.Unauthorized;
                 message = "Please logout and login again.";
                 break;
-            case TokenInternalException:
+            case TokenInternalException tie:
+                _logger.LogError(tie, "Token internal error.");
                 statusCode = (int)HttpStatusCode.InternalServerError;
                 message = "Something went wrong. Please try again later.";
                 break;
 
             case PostgresException pgEx when pgEx.SqlState == "23505":
+                _logger.LogError(pgEx, "Database conflict error.");
                 statusCode = (int)HttpStatusCode.Conflict;
                 message = "Conflict occurred. Duplicate entry.";
                 break;
             case PostgresException pgEx when pgEx.SqlState == "23503":
+                _logger.LogError(pgEx, "Foreign key violation error.");
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = "Invalid request. Please check your input and try again.";
                 break;
             case PostgresException pgEx when pgEx.SqlState == "23502":
+                _logger.LogError(pgEx, "Not null violation error.");
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = "Missing required field. Please check your input and try again.";
                 break;
 
             default:
+                _logger.LogError(exception, "An unexpected error occurred.");
                 statusCode = (int)HttpStatusCode.InternalServerError;
                 message = "Something went wrong. Please try again later.";
                 break;

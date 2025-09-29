@@ -17,6 +17,18 @@ namespace VelocityAPI.Models
         public string ResendAPIKey { get; set; } = string.Empty;
 
         [Required]
+        public string AwsAccessKeyId { get; set; } = string.Empty;
+
+        [Required]
+        public string AwsAccessKeySecret { get; set; } = string.Empty;
+
+        [Required]
+        public string AwsRegion { get; set; } = string.Empty;
+
+        [Required]
+        public string AwsBucket { get; set; } = string.Empty;
+
+        [Required]
         public string Environment { get; set; } = string.Empty;
 
         [Required]

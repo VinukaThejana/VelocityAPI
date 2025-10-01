@@ -29,6 +29,7 @@ public class Access : ITokenService
             var claims = new TokenClaims
             {
                 Jti = ajti,
+                Rjti = rjti,
                 UserId = tokenParams.UserId,
             };
 

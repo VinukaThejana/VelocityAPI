@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 using VelocityAPI.DTOs.Auth;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
@@ -8,11 +6,13 @@ using VelocityAPI.Application.Authentication.Services;
 using VelocityAPI.Application.Authentication.Errors;
 using VelocityAPI.Application.Authentication.Common;
 using VelocityAPI.Application.Constants;
-using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Resend;
+using StackExchange.Redis;
 using System.Net;
+using Npgsql;
+using Resend;
 
 namespace VelocityAPI.Controllers.Hello;
 

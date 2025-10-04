@@ -29,6 +29,9 @@ namespace VelocityAPI.Models
         public string AwsBucket { get; set; } = string.Empty;
 
         [Required]
+        public string RouteSecret { get; set; } = string.Empty;
+
+        [Required]
         public string Environment { get; set; } = string.Empty;
 
         [Required]

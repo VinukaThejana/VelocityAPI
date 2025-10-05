@@ -3,18 +3,22 @@ namespace VelocityAPI.Application.Models;
 public class Car
 {
     public string Id { get; set; } = string.Empty;
-
-    public string Email { get; set; } = string.Empty;
-
+    public string OwnerId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public string Color { get; set; } = string.Empty;
+    public string LicensePlate { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public List<string> Photos { get; set; } = new();
 
-    public string PhotoUrl { get; set; } = string.Empty;
+    public short BrandId { get; set; }
+    public short VehicleTypeId { get; set; }
 
-    public string Nic { get; init; } = string.Empty;
+    public int Year { get; set; }
+    public int Mileage { get; set; }
 
-    public string PasswordHash { get; init; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 
-    public int Strikes { get; init; } = 0;
-
-    public bool EmailVerified { get; init; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

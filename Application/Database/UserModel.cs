@@ -1,5 +1,5 @@
-using VelocityAPI.Models;
-using VelocityAPI.DTOs.Auth;
+using VelocityAPI.Application.Models;
+using VelocityAPI.Application.DTOs.Auth;
 using Dapper;
 using Npgsql;
 

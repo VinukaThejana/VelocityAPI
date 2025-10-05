@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using VelocityAPI.Models;
+using VelocityAPI.Application.Constants;
 
 namespace VelocityAPI.Configuration;
 
@@ -15,7 +16,7 @@ public static class RedisConfig
 
         services.AddStackExchangeRedisCache(options =>
         {
-            options.InstanceName = "velocityapi:";
+            options.InstanceName = Redis.RedisInstanceName;
         });
 
         return services;

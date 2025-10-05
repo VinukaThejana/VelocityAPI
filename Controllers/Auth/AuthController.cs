@@ -1,11 +1,12 @@
-using VelocityAPI.DTOs.Auth;
+using VelocityAPI.Models;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
-using VelocityAPI.Models;
+using VelocityAPI.Application.Models;
+using VelocityAPI.Application.Constants;
+using VelocityAPI.Application.DTOs.Auth;
 using VelocityAPI.Application.Authentication.Services;
 using VelocityAPI.Application.Authentication.Errors;
 using VelocityAPI.Application.Authentication.Common;
-using VelocityAPI.Application.Constants;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;

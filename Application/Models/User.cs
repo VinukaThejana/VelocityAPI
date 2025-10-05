@@ -1,4 +1,4 @@
-namespace VelocityAPI.Models;
+namespace VelocityAPI.Application.Models;
 
 public class User
 {

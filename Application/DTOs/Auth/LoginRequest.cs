@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace VelocityAPI.DTOs.Auth;
+namespace VelocityAPI.Application.DTOs.Auth;
 
 public class LoginRequest
 {

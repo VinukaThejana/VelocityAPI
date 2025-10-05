@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-namespace VelocityAPI.DTOs.Auth;
+namespace VelocityAPI.Application.DTOs.Auth;
 
 public class RegisterRequest
 {

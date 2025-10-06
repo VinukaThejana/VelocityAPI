@@ -2,6 +2,8 @@ using VelocityAPI.Application.DTOs.Car;
 using VelocityAPI.Filters;
 using VelocityAPI.Models;
 using VelocityAPI.Application.Constants;
+using VelocityAPI.Application.Error;
+using VelocityAPI.Application.Database;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -96,6 +98,20 @@ public class CarController : ControllerBase
       [FromServices] IOptions<AppSettings> settings
     )
     {
+        var userId = HttpContext.Items["userId"]!.ToString()!;
 
+        var redis = _redis.GetDatabase();
+        var redisKey = $"{Redis.CarUploadPendingKey}:{request.CarId}";
+        var result = await redis.StringGetAsync(redisKey);
+        if (string.IsNullOrEmpty(result) || result == RedisValue.Null)
+        {
+            _logger.LogWarning("Car upload session expired or does not exist: {CarId}", request.CarId);
+            return Error.BadRequest("Car upload session expired or does not exist");
+        }
+
+        await CarModel.AddCar(_dataSource, settings, request, userId);
+        await redis.KeyDeleteAsync(redisKey);
+
+        return Error.Okay("Car added successfully");
     }
 }

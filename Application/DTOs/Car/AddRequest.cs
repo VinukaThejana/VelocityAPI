@@ -25,7 +25,7 @@ public class AddRequest
 
     [JsonPropertyName("photo_ids")]
     [Required(ErrorMessage = "The photo_ids field is required.")]
-    public List<string> PhotoIDs { get; set; } = new List<string>();
+    public List<URL> PhotoIDs { get; set; } = new();
 
     [JsonPropertyName("color")]
     [Required(ErrorMessage = "The color field is required.")]
@@ -42,7 +42,7 @@ public class AddRequest
     [JsonPropertyName("year")]
     [Required(ErrorMessage = "The year field is required.")]
     [RegularExpression(@"^\d{4}$", ErrorMessage = "The year field must be a valid 4-digit year.")]
-    public string year { get; set; } = string.Empty;
+    public string Year { get; set; } = string.Empty;
 
     [JsonPropertyName("description")]
     [Required(ErrorMessage = "The description field is required.")]

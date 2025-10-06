@@ -5,5 +5,5 @@ public class Redis
     public static String RedisInstanceName = "velocityapi:";
 
     // Cars
-    public static String CarUploadPendingSetKey = "car:upload:pending";
+    public static String CarUploadPendingKey = "car:upload:pending";
 }

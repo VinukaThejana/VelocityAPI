@@ -55,7 +55,7 @@ public class CarController : ControllerBase
           RegionEndpoint.GetBySystemName(settings.Value.AwsRegion)
         );
 
-        var urls = new List<string>();
+        var data = new List<URL>();
         foreach (var fileName in fileNames)
         {
             var url = await s3Client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
@@ -65,25 +65,37 @@ public class CarController : ControllerBase
                 Expires = DateTime.UtcNow.AddMinutes(20),
                 Verb = HttpVerb.PUT
             });
-            urls.Add(url);
+            data.Add(new URL
+            {
+                Url = url,
+                Key = $"cars/{carId}/{fileName}"
+            });
         }
 
         var redis = _redis.GetDatabase();
 
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var result = await redis.SetAddAsync(
-          Redis.CarUploadPendingSetKey,
-          $"{carId}:{now}"
-        );
+        var result = await redis.StringSetAsync($"{Redis.CarUploadPendingKey}:{carId}", now.ToString());
         if (!result)
         {
-            throw new Exception("Failed to add car upload id to the redis set");
+            _logger.LogError("Failed to set Redis key for car upload pending: {CarId}", carId);
+            return StatusCode(500, new { message = "Internal server error" });
         }
 
         return Ok(new
         {
             car_id = carId,
-            urls = urls,
+            data = data,
         });
+    }
+
+    [HttpPost("add")]
+    [AuthorizationFilter]
+    public async Task<IActionResult> Add(
+      [FromBody] AddRequest request,
+      [FromServices] IOptions<AppSettings> settings
+    )
+    {
+
     }
 }

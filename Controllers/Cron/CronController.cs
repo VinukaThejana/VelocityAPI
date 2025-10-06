@@ -45,51 +45,41 @@ public class CronController : ControllerBase
     {
 
         var redis = _redis.GetDatabase();
+        var server = _redis.GetServer(_redis.GetEndPoints().First());
 
         int pageSize = 20;
-        var items = new List<CarUploadPendingItem>();
+        var keys = new List<RedisKey>();
 
-        await foreach (var item in redis.SetScanAsync(Redis.CarUploadPendingSetKey, pageSize: pageSize))
+        await foreach (var key in server.KeysAsync(pattern: $"{Redis.CarUploadPendingKey}:*", pageSize: pageSize))
         {
-            var Id = item.ToString();
-            if (string.IsNullOrEmpty(Id))
-            {
-                continue;
-            }
-
-            var parts = Id.Split(':');
-            if (parts.Length != 2)
-            {
-                continue;
-            }
-
-            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var carId = parts[0];
-            if (!long.TryParse(parts[1], out var timestamp))
-            {
-                continue;
-            }
-            if (now - timestamp < 3600) // 1 hour
-            {
-                continue;
-            }
-
-            items.Add(new CarUploadPendingItem
-            {
-                Id = Id,
-                CarId = carId
-            });
-
-            if (items.Count >= pageSize)
-            {
-                break;
-            }
+            keys.Add(key);
+            if (keys.Count >= pageSize) break;
         }
 
-        if (items.Count == 0)
+        var result = new Dictionary<string, string>();
+        if (result.Count == 0)
         {
             _logger.LogInformation("No car upload pending items to delete");
             return Ok(new { success = true, deleted = 0 });
+        }
+
+        var carIds = new List<string>();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        RedisValue[] values = await redis.StringGetAsync(keys.ToArray());
+        for (int i = 0; i < keys.Count; i++)
+        {
+            if (string.IsNullOrEmpty(values[i])) continue;
+            if (string.IsNullOrEmpty(keys[i])) continue;
+
+            if (long.TryParse(values[i], out var timestamp)) continue;
+            if ((now - timestamp) < 3600) continue; // should give the user at least 1 hour to finish the upload
+
+            var keyParts = keys[i].ToString().Split($"{Redis.CarUploadPendingKey}:");
+            if (keyParts.Length != 2) continue;
+            var carId = keyParts[1];
+
+            carIds.Add(carId);
         }
 
         var s3Client = new AmazonS3Client(
@@ -98,24 +88,21 @@ public class CronController : ControllerBase
           RegionEndpoint.GetBySystemName(settings.Value.AwsRegion)
         );
 
-        var deleteTasks = items.Select(
-            async item =>
+        var deleteTasks = carIds.Select(
+            async carId =>
             {
                 await S3.DeleteS3FolderAsync(
                   s3Client,
                   settings.Value.AwsBucket,
-                  $"cars/{item.CarId}/"
+                  $"cars/{carId}/"
                 );
-                await redis.SetRemoveAsync(
-                  Redis.CarUploadPendingSetKey,
-                  item.Id
-                );
+                await redis.KeyDeleteAsync($"{Redis.CarUploadPendingKey}:{carId}");
             }
         ).ToList();
 
         await Task.WhenAll(deleteTasks);
 
-        _logger.LogInformation("Deleted {Count} car upload pending items", items.Count);
-        return Ok(new { success = true, deleted = items.Count });
+        _logger.LogInformation("Deleted {Count} car upload pending items", carIds.Count);
+        return Ok(new { success = true, deleted = carIds.Count });
     }
 }

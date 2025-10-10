@@ -26,7 +26,7 @@ public class S3
         do
         {
             listResponse = await s3Client.ListObjectsV2Async(listRequest);
-            if (listResponse.S3Objects.Count == 0) return;
+            if (listResponse.S3Objects == null || listResponse.S3Objects.Count == 0) return;
 
             var deleteRequest = new DeleteObjectsRequest
             {
@@ -39,7 +39,7 @@ public class S3
 
             await s3Client.DeleteObjectsAsync(deleteRequest);
 
-            listResponse.ContinuationToken = listResponse.NextContinuationToken;
+            listRequest.ContinuationToken = listResponse.NextContinuationToken;
         } while (listResponse.IsTruncated ?? false);
     }
 }

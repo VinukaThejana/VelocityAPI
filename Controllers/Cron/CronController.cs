@@ -55,9 +55,7 @@ public class CronController : ControllerBase
             keys.Add(key);
             if (keys.Count >= pageSize) break;
         }
-
-        var result = new Dictionary<string, string>();
-        if (result.Count == 0)
+        if (keys.Count == 0)
         {
             _logger.LogInformation("No car upload pending items to delete");
             return Ok(new { success = true, deleted = 0 });
@@ -72,7 +70,7 @@ public class CronController : ControllerBase
             if (string.IsNullOrEmpty(values[i])) continue;
             if (string.IsNullOrEmpty(keys[i])) continue;
 
-            if (long.TryParse(values[i], out var timestamp)) continue;
+            if (!long.TryParse(values[i].ToString().Trim(), out var timestamp)) continue;
             if ((now - timestamp) < 3600) continue; // should give the user at least 1 hour to finish the upload
 
             var keyParts = keys[i].ToString().Split($"{Redis.CarUploadPendingKey}:");

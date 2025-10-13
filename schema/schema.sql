@@ -68,6 +68,28 @@ CREATE TABLE IF NOT EXISTS velocity._vehicle (
   mileage INT NOT NULL CHECK (mileage >= 0),
   description TEXT NOT NULL,
 
+  features TEXT[] NOT NULL DEFAULT '{}',
+
+  engine VARCHAR(100) NOT NULL,
+  transmission VARCHAR(100) NOT NULL,
+  estimated_fuel_economy VARCHAR(100) NOT NULL,
+  fuel_capacity VARCHAR(100) NOT NULL,
+  horsepower VARCHAR(100),
+  tourque VARCHAR(100),
+  drive_train VARCHAR(100),
+  front_suspension VARCHAR(100),
+  rear_suspension VARCHAR(100),
+  front_brakes VARCHAR(100),
+  rear_brakes VARCHAR(100),
+  wheels VARCHAR(100),
+  tires VARCHAR(100),
+  wheelbase VARCHAR(100),
+  curb_weight VARCHAR(100),
+  length VARCHAR(100),
+  width VARCHAR(100),
+  height VARCHAR(100),
+  zero_to_sixty DECIMAL(5, 2),
+
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
 
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

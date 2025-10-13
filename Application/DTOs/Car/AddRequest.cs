@@ -25,7 +25,7 @@ public class AddRequest
 
     [JsonPropertyName("photo_ids")]
     [Required(ErrorMessage = "The photo_ids field is required.")]
-    public List<URL> PhotoIDs { get; set; } = new();
+    public List<string> PhotoIDs { get; set; } = new();
 
     [JsonPropertyName("color")]
     [Required(ErrorMessage = "The color field is required.")]
@@ -60,4 +60,68 @@ public class AddRequest
     [MinLength(2, ErrorMessage = "The name field must be at least 2 characters long.")]
     [MaxLength(50, ErrorMessage = "The name field must be at most 50 characters long.")]
     public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("features")]
+    public List<string> Features { get; set; } = new();
+
+    [JsonPropertyName("engine")]
+    [Required(ErrorMessage = "The engine field is required.")]
+    public string Engine { get; set; } = string.Empty;
+
+    [JsonPropertyName("transmission")]
+    [Required(ErrorMessage = "The transmission field is required.")]
+    public string Transmission { get; set; } = string.Empty;
+
+    [JsonPropertyName("estimated_fuel_economy")]
+    [Required(ErrorMessage = "The estimated_fuel_economy field is required.")]
+    public string EstimatedFuelEconomy { get; set; } = string.Empty;
+
+    [JsonPropertyName("fuel_capacity")]
+    [Required(ErrorMessage = "The fuel_capacity field is required.")]
+    public string FuelCapacity { get; set; } = string.Empty;
+
+    [JsonPropertyName("horsepower")]
+    public string Horsepower { get; set; } = string.Empty;
+
+    [JsonPropertyName("tourque")]
+    public string Tourque { get; set; } = string.Empty;
+
+    [JsonPropertyName("drive_train")]
+    public string DriveTrain { get; set; } = string.Empty;
+
+    [JsonPropertyName("front_suspension")]
+    public string FrontSuspension { get; set; } = string.Empty;
+
+    [JsonPropertyName("rear_suspension")]
+    public string RearSuspension { get; set; } = string.Empty;
+
+    [JsonPropertyName("front_brakes")]
+    public string FrontBrakes { get; set; } = string.Empty;
+
+    [JsonPropertyName("rear_brakes")]
+    public string RearBrakes { get; set; } = string.Empty;
+
+    [JsonPropertyName("wheels")]
+    public string Wheels { get; set; } = string.Empty;
+
+    [JsonPropertyName("tires")]
+    public string Tires { get; set; } = string.Empty;
+
+    [JsonPropertyName("wheelbase")]
+    public string Wheelbase { get; set; } = string.Empty;
+
+    [JsonPropertyName("curb_weight")]
+    public string CurbWeight { get; set; } = string.Empty;
+
+    [JsonPropertyName("length")]
+    public string Length { get; set; } = string.Empty;
+
+    [JsonPropertyName("width")]
+    public string Width { get; set; } = string.Empty;
+
+    [JsonPropertyName("height")]
+    public string Height { get; set; } = string.Empty;
+
+    [JsonPropertyName("zero_to_sixty")]
+    public decimal ZeroToSixty { get; set; } = -1;
 }

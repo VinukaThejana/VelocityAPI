@@ -98,7 +98,7 @@ public class CarController : ControllerBase
       [FromServices] IOptions<AppSettings> settings
     )
     {
-        var userId = HttpContext.Items["userId"]!.ToString()!;
+        var userId = HttpContext.Items["UserId"]!.ToString()!;
 
         var redis = _redis.GetDatabase();
         var redisKey = $"{Redis.CarUploadPendingKey}:{request.CarId}";
@@ -113,5 +113,38 @@ public class CarController : ControllerBase
         await redis.KeyDeleteAsync(redisKey);
 
         return Error.Okay("Car added successfully");
+    }
+
+    [HttpGet("list/popular")]
+    public async Task<IActionResult> ListPopular(
+      [FromServices] IOptions<AppSettings> settings,
+      [FromQuery] int limit = 10
+    )
+    {
+        var cars = await CarModel.GetPopularCars(_dataSource, settings, limit);
+        return Ok(new { data = cars });
+    }
+
+    [HttpGet("list/brands")]
+    public async Task<IActionResult> ListBrands()
+    {
+        var brands = await CarModel.GetAllCarBrands(_dataSource);
+        return Ok(new { data = brands });
+    }
+
+    [HttpGet("list/pastsales")]
+    public async Task<IActionResult> ListPastSales(
+      [FromServices] IOptions<AppSettings> settings,
+      [FromQuery] int limit = 10,
+      [FromQuery] int page = 1
+    )
+    {
+        var sales = await CarModel.GetPastSales(_dataSource, settings, page, limit);
+        return Ok(new
+        {
+            data = sales,
+            page = page,
+            page_size = limit
+        });
     }
 }

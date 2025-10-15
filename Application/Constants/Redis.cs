@@ -6,4 +6,6 @@ public class Redis
 
     // Cars
     public static String CarUploadPendingKey = "car:upload:pending";
+    public static String AuctionLockKey = "car:auction:lock";
+    public static String HighestBidKey = "car:highestbid";
 }

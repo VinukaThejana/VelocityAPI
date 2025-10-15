@@ -4,6 +4,7 @@ using VelocityAPI.Models;
 using VelocityAPI.Application.Constants;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
+using VelocityAPI.Application.Exceptions.Car;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -113,6 +114,47 @@ public class CarController : ControllerBase
         await redis.KeyDeleteAsync(redisKey);
 
         return Error.Okay("Car added successfully");
+    }
+
+    [HttpPost("bid")]
+    [AuthorizationFilter]
+    public async Task<IActionResult> Bid(
+      [FromBody] PlaceBid request,
+      [FromServices] IOptions<AppSettings> settings
+    )
+    {
+        var userId = HttpContext.Items["UserId"]!.ToString()!;
+        var redis = _redis.GetDatabase();
+
+        var lockKey = $"{Redis.AuctionLockKey}:{request.AuctionId}";
+        var lockToken = Ulid.NewUlid().ToString();
+
+        if (await redis.LockTakeAsync(lockKey, lockToken, TimeSpan.FromSeconds(30)))
+        {
+            try
+            {
+                await CarModel.PlaceBid(_dataSource, request.AuctionId, userId, request.Amount);
+                await redis.StringSetAsync($"{Redis.HighestBidKey}:{request.AuctionId}", request.Amount.ToString());
+
+                return Error.Okay("Bid placed successfully");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Error.NotFound(ex.Message);
+            }
+            catch (Exception ex) when (ex is AuctionNotActiveException or BidTooLowException)
+            {
+                return Error.BadRequest(ex.Message);
+            }
+            finally
+            {
+                await redis.LockReleaseAsync(lockKey, lockToken);
+            }
+        }
+        else
+        {
+            return Error.Conflict("Another bid is being processed for this auction. Please try again.");
+        }
     }
 
     [HttpGet("list/popular")]

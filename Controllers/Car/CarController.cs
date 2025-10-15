@@ -147,4 +147,13 @@ public class CarController : ControllerBase
             page_size = limit
         });
     }
+
+    [HttpGet("list/by-brand")]
+    public async Task<IActionResult> GetCarsByBrandId(
+      [FromServices] IOptions<AppSettings> settings,
+      [FromQuery] string slug)
+    {
+        var cars = await CarModel.GetCarDetailsByBrand(_dataSource, settings, slug);
+        return Ok(new { data = cars });
+    }
 }

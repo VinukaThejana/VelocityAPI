@@ -32,6 +32,12 @@ namespace VelocityAPI.Models
         public string RouteSecret { get; set; } = string.Empty;
 
         [Required]
+        public string StripeApiKey { get; set; } = string.Empty;
+
+        [Required]
+        public string FrontendUrl { get; set; } = string.Empty;
+
+        [Required]
         public string Environment { get; set; } = string.Empty;
 
         [Required]

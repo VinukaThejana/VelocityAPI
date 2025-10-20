@@ -232,7 +232,8 @@ public class CarModel
       NpgsqlDataSource dataSource,
       string auctionId,
       string bidderId,
-      decimal amount
+      decimal amount,
+      string paymentProof
     )
     {
         await using var connection = await dataSource.OpenConnectionAsync();
@@ -270,15 +271,16 @@ public class CarModel
             }
 
             const string insertBidSql = @"
-            INSERT INTO velocity._bids (auction_id, bidder_id, amount)
-            VALUES (@AuctionId, @BidderId, @Amount);
+            INSERT INTO velocity._bids (auction_id, bidder_id, amount, payment_proof)
+            VALUES (@AuctionId, @BidderId, @Amount, @PaymentProof);
             ";
 
             await connection.ExecuteAsync(insertBidSql, new
             {
                 AuctionId = auctionId,
                 BidderId = bidderId,
-                Amount = amount
+                Amount = amount,
+                PaymentProof = paymentProof
             }, transaction);
 
             await transaction.CommitAsync();

@@ -261,7 +261,7 @@ public class CarController : ControllerBase
         {
             try
             {
-                await CarModel.PlaceBid(_dataSource, auctionId, userId, bidAmount);
+                await CarModel.PlaceBid(_dataSource, auctionId, userId, bidAmount, session.PaymentIntentId);
                 await redis.StringSetAsync($"{Redis.HighestBidKey}:{auctionId}", bidAmount.ToString());
 
                 return Ok();

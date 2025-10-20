@@ -23,6 +23,13 @@ public class AuthorizationFilter : Attribute, IAsyncActionFilter
                 var token = authHeader.Substring("Bearer ".Length).Trim();
                 if (!string.IsNullOrEmpty(token))
                 {
+                    if (token == _settings.Value.RouteSecret)
+                    {
+                        context.HttpContext.Items["UserId"] = _settings.Value.SystemUserId;
+                        await next();
+                        return;
+                    }
+
                     var access = new Access(_redis, _settings);
                     var claims = await access.Verify(token);
 

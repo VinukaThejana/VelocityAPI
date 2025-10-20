@@ -1,5 +1,6 @@
-using VelocityAPI.Application.Models;
 using VelocityAPI.Application.DTOs.Auth;
+using VelocityAPI.Application.Records.User;
+
 using Dapper;
 using Npgsql;
 

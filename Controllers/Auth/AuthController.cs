@@ -1,7 +1,7 @@
 using VelocityAPI.Models;
 using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
-using VelocityAPI.Application.Models;
+using VelocityAPI.Application.Records.User;
 using VelocityAPI.Application.Constants;
 using VelocityAPI.Application.DTOs.Auth;
 using VelocityAPI.Application.Authentication.Services;

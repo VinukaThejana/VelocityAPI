@@ -1,6 +1,5 @@
 using VelocityAPI.Models;
 using VelocityAPI.Application.DTOs.Car;
-using VelocityAPI.Application.Models;
 using VelocityAPI.Application.Records.Car;
 using VelocityAPI.Application.Exceptions.Car;
 

@@ -1,6 +1,6 @@
-namespace VelocityAPI.Application.Models;
+namespace VelocityAPI.Application.Records.User;
 
-public class User
+public record User
 {
     public string Id { get; set; } = string.Empty;
 

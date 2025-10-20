@@ -1,4 +1,4 @@
-using VelocityAPI.Application.Models;
+using VelocityAPI.Application.Records.Auction;
 
 using Dapper;
 using Npgsql;
@@ -7,7 +7,48 @@ namespace VelocityAPI.Application.Database;
 
 public class AuctionModel
 {
-    public static async Task<BaisAuctionDetails> GetBaisAuctionDetails(
+    public static async Task<AuctionDetails> GetAuctionDetails(
+        NpgsqlDataSource dataSource,
+        string auctionId
+    )
+    {
+        string sql = @"
+        SELECT
+          a.status AS Status,
+          a.expiration AS Expiration,
+          a.start_time AS StartTime,
+          
+          -- Count the total number of bids
+          COUNT(b.id) AS TotalBids,
+          
+          -- Find the highest bid, or return 0 if there are no bids
+          COALESCE(MAX(b.amount), 0) AS HighestBid
+        FROM
+            velocity._auctions AS a
+        LEFT JOIN
+            -- Use LEFT JOIN in case an auction has 0 bids
+            velocity._bids AS b ON a.id = b.auction_id
+        WHERE
+            a.id = @AuctionId
+        GROUP BY
+            -- Group by the auction's primary key and other selected columns
+            a.id, a.status, a.expiration, a.start_time;
+        ";
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        var auctionDetails = await connection.QuerySingleOrDefaultAsync<AuctionDetails>(
+          sql,
+          new { AuctionId = auctionId }
+        );
+        if (auctionDetails == default)
+        {
+            throw new KeyNotFoundException("Auction not found");
+        }
+        return auctionDetails;
+    }
+
+    public static async Task<BasicAuctionDetails> GetBaisAuctionDetails(
       NpgsqlDataSource dataSource,
       string auctionId
     )
@@ -27,7 +68,7 @@ public class AuctionModel
 
         await using var connection = await dataSource.OpenConnectionAsync();
 
-        var auctionDetails = await connection.QuerySingleOrDefaultAsync<BaisAuctionDetails>(sql, new { AuctionId = auctionId });
+        var auctionDetails = await connection.QuerySingleOrDefaultAsync<BasicAuctionDetails>(sql, new { AuctionId = auctionId });
         if (auctionDetails == default)
         {
             throw new KeyNotFoundException("Auction not found");

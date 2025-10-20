@@ -1,6 +1,7 @@
 using VelocityAPI.Application.DTOs.Auction;
 using VelocityAPI.Filters;
 using VelocityAPI.Models;
+using VelocityAPI.Application.Error;
 using VelocityAPI.Application.Database;
 
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,36 @@ public class AuctionController : ControllerBase
         _dataSource = dataSource;
         _redis = redis;
         _logger = logger;
+    }
+
+    [HttpGet("{auctionId}")]
+    public async Task<IActionResult> GetBasicInfo(
+      [FromRoute] string auctionId,
+      [FromServices] IOptions<AppSettings> settings
+    )
+    {
+        if (!Ulid.TryParse(auctionId, out var id))
+        {
+            return Error.BadRequest("Invalid auction ID format.");
+        }
+        try
+        {
+            var auctionDetails = await AuctionModel.GetAuctionDetails(_dataSource, auctionId);
+            return Ok(new
+            {
+                status = auctionDetails.Status.ToString(),
+                expiration = auctionDetails.Expiration,
+                start_time = auctionDetails.StartTime.ToString(),
+                total_bids = auctionDetails.TotalBids,
+                highest_bid = auctionDetails.HighestBid,
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            Error.NotFound(ex.Message);
+        }
+
+        return Error.InternalServerError("Something went wrong.");
     }
 
     [HttpPost("create")]

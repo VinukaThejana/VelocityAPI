@@ -6,6 +6,17 @@ using VelocityAPI.Middlewares;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
+  .AddCors(options =>
+  {
+      options.AddPolicy(name: "localhost", policy =>
+          {
+              policy.WithOrigins("http://localhost:3000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+          });
+  });
+
+builder.Services
   .AddOptions<AppSettings>()
   .Bind(builder.Configuration)
   .ValidateDataAnnotations()

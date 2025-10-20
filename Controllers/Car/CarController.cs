@@ -171,8 +171,8 @@ public class CarController : ControllerBase
             {
               PriceData = new SessionLineItemPriceDataOptions
               {
-                Currency = "lkr",
-                UnitAmount = 1000,
+                Currency = "LKR",
+                UnitAmount = 100000,
                 ProductData = new SessionLineItemPriceDataProductDataOptions
                 {
                   Name = "Verification Fee",

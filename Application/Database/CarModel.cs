@@ -254,8 +254,7 @@ public class CarModel
             WHERE
                 a.id = @AuctionId
             GROUP BY
-                a.id
-            FOR UPDATE; -- Lock the auction row until the transaction is complete.
+                a.id;
             ";
 
             var auctionState = await connection.QuerySingleOrDefaultAsync<(string Status, long Expiration, decimal CurrentHighestBid)>(getAuctionStateSql, new { AuctionId = auctionId }, transaction);

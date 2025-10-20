@@ -188,7 +188,7 @@ public class CarController : ControllerBase
             { "auction_id", request.AuctionId},
             { "bid_amount", request.Amount.ToString("0.00") }
           },
-            SuccessUrl = $"{appDomain}/api/car/bid?session_id={{CHECKOUT_SESSION_ID}}",
+            SuccessUrl = $"{frontendUrl}/auction/{request.AuctionId}?payment=success",
             CancelUrl = $"{frontendUrl}/auction/{request.AuctionId}?payment=failed"
         };
 
@@ -216,7 +216,7 @@ public class CarController : ControllerBase
             stripEvent = EventUtility.ConstructEvent(
               json,
               signature,
-              settings.Value.StripeApiKey
+              settings.Value.StripeWebhookSecret
             );
         }
         catch (StripeException ex)

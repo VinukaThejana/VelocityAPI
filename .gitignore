@@ -49,3 +49,7 @@ TestResult*/
 appsettings.*.local.json
 appsettings.Development.json
 
+
+# .env files
+.env
+.env.local

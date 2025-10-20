@@ -1,0 +1,59 @@
+# Ignore build artifacts
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+
+# Ignore user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore Visual Studio cache/options directory
+.vs/
+
+# Ignore NuGet packages
+*.nupkg
+*.snupkg
+**/packages/
+
+# Ignore test results
+**/TestResults/
+*.trx
+*.coverage
+
+# Ignore logs
+*.log
+
+# Ignore git files
+.git/
+.gitignore
+.gitattributes
+
+# Ignore Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore documentation
+README.md
+*.md
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore configuration files
+appsettings.Development.json

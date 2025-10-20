@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  velocityapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: velocityapi
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - velocityapi-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -35,6 +35,8 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseGlobalExceptionHandler();
+app.UseCors("localhost");
+
 app.UseHttpsRedirection();
 
 app.MapControllers();

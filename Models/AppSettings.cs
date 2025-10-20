@@ -35,6 +35,9 @@ namespace VelocityAPI.Models
         public string StripeApiKey { get; set; } = string.Empty;
 
         [Required]
+        public string StripeWebhookSecret { get; set; } = string.Empty;
+
+        [Required]
         public string FrontendUrl { get; set; } = string.Empty;
 
         [Required]
